@@ -16,14 +16,14 @@ const CONTENT = {
   about: {
     // Add or remove paragraphs freely — each string becomes its own <p>
     paragraphs: [
-      "I work at the edge of research and things I build with my hands — code, and sound. This site is where those threads meet: papers and findings, projects I keep in the open, and music I make when I need a different kind of logic.",
-      "Replace this paragraph with your own bio — two or three sentences on what you research, what you build, and why the combination makes sense to you."
+      "I work designing and building instruments to discover and characterize exoplanets. My work has been focused in echelle spectroscopy and the discovery of Warm Jupiters.",
+      "I obtained my BSc. and MSc. in Astrophysics degrees at the Pontificia Universidad Católica de Chile, working in the development of the FIDEOS instrument for the ESO 1m Telescope in La Silla Observatory."
     ],
     // Short facts shown in the right-hand column
     stats: [
-      { label: "Based in", value: "your city" },
-      { label: "Focus", value: "your research area" },
-      { label: "Currently", value: "what you're working on now" },
+      { label: "Based in", value: "Columbus, OH, USA" },
+      { label: "Focus", value: "Exoplanet instrumentation" },
+      { label: "Currently", value: "Wavelength calibration of iLocater" },
       { label: "Reachable", value: "see contact below" }
     ]
   },
@@ -86,7 +86,7 @@ const CONTENT = {
   // ---- Contact / footer ----------------------------------------------------
   contact: {
     intro: "For research collaborations, project inquiries, gigs, or anything else — reach out directly.",
-    email: "you@example.com",
+    email: "mtalapinto@gmail.com / tala.1@osu.edu",
     githubUrl: "https://github.com/mtalapinto",
     youtubeUrl: "https://youtube.com/@yourchannel",
     copyrightLine: "Marcelo Tala Pinto — © 2026"
