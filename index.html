@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcelo Tala Pinto</title>
+<style>
+  /* ===================================================================
+     DESIGN TOKENS
+     Change these to re-theme the whole site (colors, fonts).
+     =================================================================== */
+  :root{
+    --bg-void:#0a0a0a;       /* page background */
+    --bg-fog-1:#141414;      /* card background */
+    --bg-fog-2:#1e1e1e;      /* card hover background */
+    --paper:#e9e6dd;         /* main text color */
+    --paper-dim:#a8a59b;     /* secondary/body text color */
+    --ember:#e0972f;         /* single accent color, used sparingly */
+    --ember-dim:#7a5223;     /* muted version of the accent */
+    --eye:#cfe3e6;           /* cold highlight, used for one link style */
+    --mist:#8a8a86;          /* faint labels / meta text */
+    --line:#2c2c2a;          /* hairline borders/dividers */
+    --font-display: 'Spectral', Georgia, serif;   /* headings */
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace; /* labels/data */
+    --font-body: 'Work Sans', -apple-system, sans-serif;     /* paragraphs */
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--bg-void);
+    color:var(--paper);
+    font-family:var(--font-body);
+    overflow-x:hidden;
+    position:relative;
+    min-height:100vh;
+  }
+
+  /* ===================================================================
+     AMBIENT FOG + GRAIN
+     Purely atmospheric background layers — no content lives here.
+     =================================================================== */
+  .fog-layer{
+    position:fixed; inset:0; pointer-events:none; z-index:1;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 15%, rgba(255,255,255,0.035), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 70%, rgba(255,255,255,0.025), transparent 60%);
+  }
+  .fog-drift{
+    position:fixed; inset:-10%; pointer-events:none; z-index:1;
+    background: radial-gradient(ellipse 50% 30% at 50% 100%, rgba(255,255,255,0.04), transparent 70%);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{ transform:translateX(-3%) translateY(0); }
+    100%{ transform:translateX(3%) translateY(-2%); }
+  }
+  .grain{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    box-shadow: inset 0 0 220px 60px rgba(0,0,0,0.75);
+  }
+
+  section, header, footer{ position:relative; z-index:3; }
+
+  /* ===================================================================
+     NAV BAR
+     Fixed top bar with logo + jump links to each section.
+     =================================================================== */
+  nav{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.4rem 2.4rem;
+    backdrop-filter: blur(6px);
+    background:linear-gradient(to bottom, rgba(10,10,10,0.85), transparent);
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.08em;
+  }
+  .logo{ color:var(--paper); text-decoration:none; opacity:0.85; }
+  .navlinks{ display:flex; gap:2rem; list-style:none; }
+  .navlinks a{
+    color:var(--paper-dim); text-decoration:none; text-transform:uppercase;
+    position:relative; transition:color .3s ease;
+  }
+  .navlinks a::after{
+    content:''; position:absolute; left:0; bottom:-4px; width:0; height:1px;
+    background:var(--ember); transition:width .35s ease;
+  }
+  .navlinks a:hover{ color:var(--paper); }
+  .navlinks a:hover::after{ width:100%; }
+
+  /* ===================================================================
+     HERO
+     Name + tagline + a small swaying silhouette figure (Limbo motif).
+     =================================================================== */
+  .hero{
+    height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; position:relative;
+  }
+  .figure{ width:46px; height:110px; margin-bottom:2.2rem; opacity:0.92; animation: sway 6s ease-in-out infinite; }
+  @keyframes sway{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-4px) rotate(0.6deg); }
+  }
+  .figure svg{ width:100%; height:100%; display:block; }
+  .hero h1{
+    font-family:var(--font-display); font-weight:300; font-size:clamp(2.4rem, 7vw, 5rem);
+    letter-spacing:0.02em; color:var(--paper); text-shadow:0 0 40px rgba(255,255,255,0.06);
+  }
+  .hero .role{
+    font-family:var(--font-mono); font-size:0.85rem; letter-spacing:0.25em; text-transform:uppercase;
+    color:var(--ember); margin-top:1rem; opacity:0.9;
+  }
+  .scroll-cue{
+    position:absolute; bottom:2.6rem; left:50%; transform:translateX(-50%);
+    font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.15em;
+    color:var(--paper-dim); text-transform:uppercase;
+    display:flex; flex-direction:column; align-items:center; gap:0.5rem;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .scroll-cue .line{ width:1px; height:34px; background:linear-gradient(var(--mist), transparent); }
+  @keyframes pulse{ 0%,100%{ opacity:0.35; } 50%{ opacity:0.9; } }
+
+  /* ===================================================================
+     SHARED SECTION STYLING
+     =================================================================== */
+  section{ padding:8rem 8vw; max-width:1180px; margin:0 auto; }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.25em;
+    text-transform:uppercase; color:var(--ember); margin-bottom:0.9rem; display:block;
+  }
+  h2{
+    font-family:var(--font-display); font-weight:300; font-size:clamp(1.8rem,3.6vw,2.6rem);
+    margin-bottom:2.6rem; color:var(--paper);
+  }
+  .section-line{ height:1px; background:var(--line); margin:0 0 3rem; }
+
+  /* ===================================================================
+     ABOUT
+     Two-column bio: paragraphs left, quick facts right.
+     =================================================================== */
+  .about-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:4rem; align-items:start; }
+  .about-grid p{ font-size:1.05rem; line-height:1.85; color:var(--paper-dim); max-width:52ch; }
+  .about-grid p + p{ margin-top:1.2rem; }
+  .stat-block{ font-family:var(--font-mono); font-size:0.82rem; color:var(--mist); line-height:2.1; }
+  .stat-block b{ color:var(--paper); font-weight:500; }
+  @media (max-width: 720px){ .about-grid{ grid-template-columns:1fr; } }
+
+  /* ===================================================================
+     RESEARCH
+     Vertical timeline: one row per publication/role, newest first.
+     =================================================================== */
+  .timeline{ position:relative; }
+  .timeline::before{
+    content:''; position:absolute; left:74px; top:6px; bottom:6px; width:1px;
+    background:linear-gradient(var(--line), var(--line) 90%, transparent);
+  }
+  .t-item{ position:relative; display:grid; grid-template-columns:74px 1fr; gap:2.2rem; padding-bottom:3rem; }
+  .t-item:last-child{ padding-bottom:0; }
+  .t-year{ font-family:var(--font-mono); font-size:0.85rem; color:var(--mist); padding-top:0.15rem; text-align:right; position:relative; }
+  .t-year::after{
+    content:''; position:absolute; right:-5px; top:6px; width:9px; height:9px; border-radius:50%;
+    background:var(--bg-void); border:1px solid var(--ember);
+  }
+  .t-body h3{ font-family:var(--font-display); font-weight:400; font-size:1.25rem; color:var(--paper); margin-bottom:0.4rem; }
+  .t-venue{ font-family:var(--font-mono); font-size:0.75rem; color:var(--ember-dim); letter-spacing:0.05em; text-transform:uppercase; }
+  .t-body p{ color:var(--paper-dim); font-size:0.95rem; line-height:1.7; margin-top:0.6rem; max-width:60ch; }
+  .t-link{ display:inline-block; margin-top:0.7rem; font-family:var(--font-mono); font-size:0.78rem; color:var(--eye); text-decoration:none; border-bottom:1px solid transparent; }
+  .t-link:hover{ border-bottom-color:var(--eye); }
+
+  /* ===================================================================
+     CODE
+     Grid of GitHub repo cards + a link out to the full profile.
+     =================================================================== */
+  .code-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:1.4rem; }
+  .repo-card{
+    border:1px solid var(--line); padding:1.6rem; background:var(--bg-fog-1);
+    transition:border-color .35s ease, transform .35s ease, background .35s ease;
+    text-decoration:none; color:inherit; display:block;
+  }
+  .repo-card:hover{ border-color:var(--ember-dim); transform:translateY(-3px); background:var(--bg-fog-2); }
+  .repo-card .repo-name{ font-family:var(--font-mono); font-size:0.98rem; color:var(--paper); margin-bottom:0.6rem; }
+  .repo-card .repo-desc{ font-size:0.88rem; color:var(--paper-dim); line-height:1.6; min-height:2.8em; }
+  .repo-meta{ display:flex; gap:1rem; margin-top:1rem; font-family:var(--font-mono); font-size:0.72rem; color:var(--mist); }
+  .repo-meta .lang-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:0.4rem; background:var(--ember); }
+  .code-cta{ margin-top:2.4rem; text-align:center; }
+  .code-cta a{ font-family:var(--font-mono); font-size:0.8rem; color:var(--ember); text-decoration:none; letter-spacing:0.05em; border-bottom:1px solid var(--ember-dim); padding-bottom:2px; }
+
+  /* ===================================================================
+     MUSIC
+     Simple list of tracks/videos, each linking out (e.g. to YouTube).
+     =================================================================== */
+  .track-list{ border-top:1px solid var(--line); }
+  .track{ display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:1.5rem 0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; }
+  .track-left{ display:flex; align-items:center; gap:1.4rem; }
+  .track-index{ font-family:var(--font-mono); font-size:0.78rem; color:var(--mist); width:2ch; }
+  .track-title{ font-family:var(--font-display); font-size:1.15rem; color:var(--paper); transition:color .3s ease; }
+  .track:hover .track-title{ color:var(--ember); }
+  .track-play{ width:34px; height:34px; border:1px solid var(--line); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color .3s ease, background .3s ease; }
+  .track:hover .track-play{ border-color:var(--ember); background:rgba(224,151,47,0.08); }
+  .track-play svg{ width:11px; height:11px; fill:var(--paper-dim); }
+  .track:hover .track-play svg{ fill:var(--ember); }
+
+  /* ===================================================================
+     IMAGING
+     Grid of photos treated in grayscale, warming slightly on hover.
+     =================================================================== */
+  .imaging-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:1.2rem; }
+  .frame{ position:relative; aspect-ratio:4/5; border:1px solid var(--line); overflow:hidden; background:var(--bg-fog-1); text-decoration:none; display:block; }
+  .frame img{ width:100%; height:100%; object-fit:cover; filter:grayscale(1) contrast(1.05) brightness(0.85); transition:filter .5s ease, transform .6s ease; }
+  .frame:hover img{ filter:grayscale(0.2) contrast(1.05) brightness(0.95); transform:scale(1.04); }
+  .frame-caption{ position:absolute; left:0; right:0; bottom:0; padding:0.9rem 1rem; background:linear-gradient(to top, rgba(0,0,0,0.75), transparent); font-family:var(--font-mono); font-size:0.72rem; color:var(--paper); letter-spacing:0.05em; }
+
+  /* ===================================================================
+     CONTACT / FOOTER
+     =================================================================== */
+  footer{ padding:6rem 8vw 4rem; text-align:center; border-top:1px solid var(--line); margin-top:4rem; }
+  footer h2{ margin-bottom:1rem; }
+  footer p{ color:var(--paper-dim); max-width:46ch; margin:0 auto 2.2rem; line-height:1.7; }
+  .contact-links{ display:flex; gap:2.4rem; justify-content:center; flex-wrap:wrap; font-family:var(--font-mono); font-size:0.85rem; }
+  .contact-links a{ color:var(--paper); text-decoration:none; border-bottom:1px solid var(--line); padding-bottom:3px; transition:border-color .3s ease, color .3s ease; }
+  .contact-links a:hover{ color:var(--ember); border-color:var(--ember); }
+  .fine-print{ margin-top:3.5rem; font-family:var(--font-mono); font-size:0.68rem; color:var(--mist); opacity:0.6; }
+
+  ::selection{ background:var(--ember-dim); color:var(--paper); }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+  @media (max-width:640px){
+    section{ padding:5.5rem 6vw; }
+    nav{ padding:1.1rem 5vw; }
+    .navlinks{ gap:1.1rem; font-size:0.68rem; }
+    .timeline::before{ left:46px; }
+    .t-item{ grid-template-columns:46px 1fr; gap:1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Ambient background layers: fog, drifting mist, grain, vignette. No content. -->
+  <div class="fog-layer"></div>
+  <div class="fog-drift"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+
+  <!-- ===================================================================
+       NAV — logo + jump links. Section labels are hardcoded here since
+       they rarely change; everything else comes from content.js.
+       =================================================================== -->
+  <nav>
+    <a class="logo" href="#top">M.T.P.</a>
+    <ul class="navlinks">
+      <li><a href="#research">Research</a></li>
+      <li><a href="#code">Code</a></li>
+      <li><a href="#music">Music</a></li>
+      <li><a href="#imaging">Imaging</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===================================================================
+       HERO — name, tagline, and the silhouette figure. Text is filled
+       in by populateHero() from CONTENT.name / CONTENT.tagline.
+       =================================================================== -->
+  <header class="hero" id="top">
+    <div class="figure">
+      <svg viewBox="0 0 46 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="23" cy="10" rx="8" ry="9" fill="#050505"/>
+        <path d="M23 19 L23 60 M23 30 L8 50 M23 30 L38 50 M23 60 L10 105 M23 60 L36 105" stroke="#050505" stroke-width="4" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <h1 id="hero-name"></h1>
+    <p class="role" id="hero-tagline"></p>
+    <div class="scroll-cue"><div class="line"></div>SCROLL</div>
+  </header>
+
+  <!-- ===================================================================
+       ABOUT — bio paragraphs (left) + quick facts (right).
+       Populated by populateAbout() from CONTENT.about.
+       =================================================================== -->
+  <section id="about">
+    <span class="eyebrow">About</span>
+    <div class="section-line"></div>
+    <div class="about-grid">
+      <div id="about-paragraphs"></div>
+      <div class="stat-block" id="about-stats"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================================
+       RESEARCH — vertical timeline of papers/projects/roles.
+       Populated by populateResearch() from CONTENT.research (array).
+       =================================================================== -->
+  <section id="research">
+    <span class="eyebrow">Research</span>
+    <h2>A history of the work</h2>
+    <div class="timeline" id="research-timeline"></div>
+  </section>
+
+  <!-- ===================================================================
+       CODE — GitHub repo cards + link to full profile.
+       Populated by populateCode() from CONTENT.code (repos array + url).
+       =================================================================== -->
+  <section id="code">
+    <span class="eyebrow">Code</span>
+    <h2>Things I've built in the open</h2>
+    <div class="code-grid" id="code-grid"></div>
+    <div class="code-cta"><a id="code-cta-link" href="#" target="_blank" rel="noopener">See everything on GitHub →</a></div>
+  </section>
+
+  <!-- ===================================================================
+       MUSIC — list of tracks/videos linking out (e.g. to YouTube).
+       Populated by populateMusic() from CONTENT.music.tracks (array).
+       =================================================================== -->
+  <section id="music">
+    <span class="eyebrow">Music</span>
+    <h2>What I make when the logic changes</h2>
+    <div class="track-list" id="music-tracks"></div>
+  </section>
+
+  <!-- ===================================================================
+       IMAGING — grid of photos, grayscale treatment.
+       Populated by populateImaging() from CONTENT.imaging.items (array).
+       =================================================================== -->
+  <section id="imaging">
+    <span class="eyebrow">Imaging</span>
+    <h2>Frames, off the clock</h2>
+    <div class="imaging-grid" id="imaging-grid"></div>
+  </section>
+
+  <!-- ===================================================================
+       CONTACT / FOOTER — intro line + email/GitHub/YouTube links.
+       Populated by populateContact() from CONTENT.contact.
+       =================================================================== -->
+  <footer id="contact">
+    <span class="eyebrow">Contact</span>
+    <h2>Get in touch</h2>
+    <p id="contact-intro"></p>
+    <div class="contact-links">
+      <a id="contact-email" href="#">Email</a>
+      <a id="contact-github" href="#" target="_blank" rel="noopener">GitHub</a>
+      <a id="contact-youtube" href="#" target="_blank" rel="noopener">YouTube</a>
+    </div>
+    <div class="fine-print" id="contact-copyright"></div>
+  </footer>
+
+  <!-- Content data lives in content.js — edit that file to change any text on the page -->
+  <script src="content.js"></script>
+  <script>
+    /* =================================================================
+       POPULATE FUNCTIONS
+       Each function fills one section's DOM from the CONTENT object
+       defined in content.js. Nothing here needs editing to change text —
+       only edit content.js. This script just wires data to markup.
+       ================================================================= */
+
+    function populateHero(){
+      document.getElementById('hero-name').textContent = CONTENT.name;
+      document.getElementById('hero-tagline').textContent = CONTENT.tagline;
+      document.title = CONTENT.name;
+    }
+
+    function populateAbout(){
+      const paraWrap = document.getElementById('about-paragraphs');
+      CONTENT.about.paragraphs.forEach(text => {
+        const p = document.createElement('p');
+        p.textContent = text;
+        paraWrap.appendChild(p);
+      });
+      const statsWrap = document.getElementById('about-stats');
+      CONTENT.about.stats.forEach(stat => {
+        const div = document.createElement('div');
+        div.innerHTML = `<b>${stat.label}</b> — ${stat.value}`;
+        statsWrap.appendChild(div);
+      });
+    }
+
+    function populateResearch(){
+      const wrap = document.getElementById('research-timeline');
+      CONTENT.research.forEach(item => {
+        const linkHtml = item.link ? `<a class="t-link" href="${item.link}" target="_blank" rel="noopener">Read the paper →</a>` : '';
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="t-item">
+            <div class="t-year">${item.year}</div>
+            <div class="t-body">
+              <h3>${item.title}</h3>
+              <div class="t-venue">${item.venue}</div>
+              <p>${item.description}</p>
+              ${linkHtml}
+            </div>
+          </div>
+        `);
+      });
+    }
+
+    function populateCode(){
+      const wrap = document.getElementById('code-grid');
+      CONTENT.code.repos.forEach(repo => {
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="repo-card" href="${repo.url}" target="_blank" rel="noopener">
+            <div class="repo-name">${repo.name}</div>
+            <div class="repo-desc">${repo.desc}</div>
+            <div class="repo-meta"><span><span class="lang-dot"></span>${repo.lang}</span><span>★ ${repo.stars}</span></div>
+          </a>
+        `);
+      });
+      document.getElementById('code-cta-link').href = CONTENT.code.githubProfileUrl;
+    }
+
+    function populateMusic(){
+      const wrap = document.getElementById('music-tracks');
+      CONTENT.music.tracks.forEach((track, i) => {
+        const index = String(i + 1).padStart(2, '0');
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="track" href="${track.url}" target="_blank" rel="noopener">
+            <div class="track-left">
+              <span class="track-index">${index}</span>
+              <span class="track-title">${track.title}</span>
+            </div>
+            <span class="track-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </a>
+        `);
+      });
+    }
+
+    function populateImaging(){
+      const wrap = document.getElementById('imaging-grid');
+      CONTENT.imaging.items.forEach(item => {
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="frame" href="${item.url}">
+            <img src="${item.img}" alt="${item.caption}">
+            <span class="frame-caption">${item.caption}</span>
+          </a>
+        `);
+      });
+    }
+
+    function populateContact(){
+      document.getElementById('contact-intro').textContent = CONTENT.contact.intro;
+      document.getElementById('contact-email').href = `mailto:${CONTENT.contact.email}`;
+      document.getElementById('contact-github').href = CONTENT.contact.githubUrl;
+      document.getElementById('contact-youtube').href = CONTENT.contact.youtubeUrl;
+      document.getElementById('contact-copyright').textContent = CONTENT.contact.copyrightLine;
+    }
+
+    // Run all populate functions once the page loads
+    populateHero();
+    populateAbout();
+    populateResearch();
+    populateCode();
+    populateMusic();
+    populateImaging();
+    populateContact();
+
+    /* =================================================================
+       AMBIENT + INTERACTION BEHAVIOR
+       ================================================================= */
+
+    // Fog layer drifts gently as you scroll
+    const fogDrift = document.querySelector('.fog-drift');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking){
+        window.requestAnimationFrame(() => {
+          fogDrift.style.transform = `translateY(${window.scrollY * -0.04}px)`;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    // Highlights the current section's nav link while scrolling
+    const sections = document.querySelectorAll('section, header');
+    const navLinks = document.querySelectorAll('.navlinks a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(a => {
+            a.style.color = a.getAttribute('href') === '#' + id ? 'var(--paper)' : '';
+          });
+        }
+      });
+    }, { threshold: 0.5 });
+    sections.forEach(s => { if (s.id) observer.observe(s); });
+  </script>
+
+</body>
+</html>
