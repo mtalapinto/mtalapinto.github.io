@@ -86,7 +86,7 @@ const CONTENT = {
   // ---- Contact / footer ----------------------------------------------------
   contact: {
     intro: "For research collaborations, project inquiries, gigs, or anything else — reach out directly.",
-    email: "mtalapinto@gmail.com / tala.1@osu.edu",
+    email: "tala.1@osu.edu",
     githubUrl: "https://github.com/mtalapinto",
     youtubeUrl: "https://youtube.com/@yourchannel",
     copyrightLine: "Marcelo Tala Pinto — © 2026"
