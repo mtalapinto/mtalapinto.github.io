@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcelo Tala Pinto</title>
+<style>
+  /* ===================================================================
+     DESIGN TOKENS — change these to re-theme the whole site.
+     =================================================================== */
+  :root{
+    --bg-void:#0a0a0a;
+    --bg-fog-1:#141414;
+    --bg-fog-2:#1e1e1e;
+    --paper:#e9e6dd;
+    --paper-dim:#a8a59b;
+    --ember:#e0972f;
+    --ember-dim:#7a5223;
+    --eye:#cfe3e6;
+    --mist:#8a8a86;
+    --line:#2c2c2a;
+    --font-display: 'Spectral', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font-body: 'Work Sans', -apple-system, sans-serif;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html, body{ height:100%; }
+  body{
+    background:var(--bg-void);
+    color:var(--paper);
+    font-family:var(--font-body);
+    overflow:hidden; /* the page itself never scrolls — windows do internally */
+    position:relative;
+  }
+
+  /* ===================================================================
+     AMBIENT FOG + GRAIN — purely atmospheric, no content lives here.
+     =================================================================== */
+  .fog-layer{
+    position:fixed; inset:0; pointer-events:none; z-index:1;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 15%, rgba(255,255,255,0.035), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 70%, rgba(255,255,255,0.025), transparent 60%);
+  }
+  .fog-drift{
+    position:fixed; inset:-10%; pointer-events:none; z-index:1;
+    background: radial-gradient(ellipse 50% 30% at 50% 100%, rgba(255,255,255,0.04), transparent 70%);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{ transform:translateX(-3%) translateY(0); }
+    100%{ transform:translateX(3%) translateY(-2%); }
+  }
+  .grain{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    box-shadow: inset 0 0 220px 60px rgba(0,0,0,0.75);
+  }
+
+  /* ===================================================================
+     NAV BAR — fixed on top of every window. Clicking a link swaps the
+     visible window instead of scrolling to an anchor.
+     =================================================================== */
+  nav{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.4rem 2.4rem;
+    backdrop-filter: blur(6px);
+    background:linear-gradient(to bottom, rgba(10,10,10,0.85), transparent);
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.08em;
+  }
+  .logo{ color:var(--paper); text-decoration:none; opacity:0.85; cursor:pointer; }
+  .navlinks{ display:flex; gap:2rem; list-style:none; }
+  .navlinks a{
+    color:var(--paper-dim); text-decoration:none; text-transform:uppercase;
+    position:relative; transition:color .3s ease; cursor:pointer;
+  }
+  .navlinks a::after{
+    content:''; position:absolute; left:0; bottom:-4px; width:0; height:1px;
+    background:var(--ember); transition:width .35s ease;
+  }
+  .navlinks a:hover{ color:var(--paper); }
+  .navlinks a.active{ color:var(--paper); }
+  .navlinks a.active::after{ width:100%; }
+
+  /* ===================================================================
+     WINDOWS — one full-screen "room" per section. Only one is visible
+     (display:block) at a time; switching fades + blurs between them.
+     =================================================================== */
+  .stage{ position:relative; width:100%; height:100vh; z-index:3; }
+  .window{
+    display:none;
+    position:absolute; inset:0;
+    height:100vh; overflow-y:auto;
+    opacity:0; filter:blur(10px);
+    transition:opacity .5s ease, filter .5s ease;
+  }
+  .window.active{ display:block; opacity:1; filter:blur(0); }
+  .window.leaving{ opacity:0; filter:blur(10px); }
+
+  .window-inner{ max-width:1180px; margin:0 auto; padding:8rem 8vw 5rem; }
+
+  .eyebrow{
+    font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.25em;
+    text-transform:uppercase; color:var(--ember); margin-bottom:0.9rem; display:block;
+  }
+  h2{
+    font-family:var(--font-display); font-weight:300; font-size:clamp(1.8rem,3.6vw,2.6rem);
+    margin-bottom:2.6rem; color:var(--paper);
+  }
+  h3.sub-heading{
+    font-family:var(--font-mono); font-weight:400; font-size:0.85rem; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--mist); margin:2.6rem 0 1.6rem; padding-top:1.6rem;
+    border-top:1px solid var(--line);
+  }
+  h3.sub-heading:first-of-type{ margin-top:0; padding-top:0; border-top:none; }
+  .section-line{ height:1px; background:var(--line); margin:0 0 3rem; }
+
+  /* ===================================================================
+     HOME WINDOW — name, tagline, silhouette figure. Centered, no
+     internal scroll needed, so it overrides the generic window layout.
+     =================================================================== */
+  #window-home.active{
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center;
+  }
+  .figure{ width:46px; height:110px; margin-bottom:2.2rem; opacity:0.92; animation: sway 6s ease-in-out infinite; }
+  @keyframes sway{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-4px) rotate(0.6deg); }
+  }
+  .figure svg{ width:100%; height:100%; display:block; }
+  #window-home h1{
+    font-family:var(--font-display); font-weight:300; font-size:clamp(2.4rem, 7vw, 5rem);
+    letter-spacing:0.02em; color:var(--paper); text-shadow:0 0 40px rgba(255,255,255,0.06);
+  }
+  #window-home .role{
+    font-family:var(--font-mono); font-size:0.85rem; letter-spacing:0.25em; text-transform:uppercase;
+    color:var(--ember); margin-top:1rem; opacity:0.9;
+  }
+  .enter-cue{
+    margin-top:3rem; font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.15em;
+    color:var(--paper-dim); text-transform:uppercase; opacity:0.7;
+  }
+
+  /* ===================================================================
+     ABOUT WINDOW — bio paragraphs (left) + quick facts (right).
+     =================================================================== */
+  .about-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:4rem; align-items:start; }
+  .about-grid p{ font-size:1.05rem; line-height:1.85; color:var(--paper-dim); max-width:52ch; }
+  .about-grid p + p{ margin-top:1.2rem; }
+  .stat-block{ font-family:var(--font-mono); font-size:0.82rem; color:var(--mist); line-height:2.1; }
+  .stat-block b{ color:var(--paper); font-weight:500; }
+  @media (max-width: 720px){ .about-grid{ grid-template-columns:1fr; } }
+
+  /* ===================================================================
+     RESEARCH WINDOW — two timelines (First author / Co-author).
+     =================================================================== */
+  .timeline{ position:relative; }
+  .timeline::before{
+    content:''; position:absolute; left:74px; top:6px; bottom:6px; width:1px;
+    background:linear-gradient(var(--line), var(--line) 90%, transparent);
+  }
+  .t-item{ position:relative; display:grid; grid-template-columns:74px 1fr; gap:2.2rem; padding-bottom:3rem; }
+  .t-item:last-child{ padding-bottom:0; }
+  .t-year{ font-family:var(--font-mono); font-size:0.85rem; color:var(--mist); padding-top:0.15rem; text-align:right; position:relative; }
+  .t-year::after{
+    content:''; position:absolute; right:-5px; top:6px; width:9px; height:9px; border-radius:50%;
+    background:var(--bg-void); border:1px solid var(--ember);
+  }
+  .t-body h3{ font-family:var(--font-display); font-weight:400; font-size:1.25rem; color:var(--paper); margin-bottom:0.4rem; }
+  .t-venue{ font-family:var(--font-mono); font-size:0.75rem; color:var(--ember-dim); letter-spacing:0.05em; text-transform:uppercase; }
+  .t-body p{ color:var(--paper-dim); font-size:0.95rem; line-height:1.7; margin-top:0.6rem; max-width:60ch; }
+  .t-link{ display:inline-block; margin-top:0.7rem; font-family:var(--font-mono); font-size:0.78rem; color:var(--eye); text-decoration:none; border-bottom:1px solid transparent; }
+  .t-link:hover{ border-bottom-color:var(--eye); }
+
+  /* ===================================================================
+     CODE WINDOW — GitHub repo cards + link to full profile.
+     =================================================================== */
+  .code-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:1.4rem; }
+  .repo-card{
+    border:1px solid var(--line); padding:1.6rem; background:var(--bg-fog-1);
+    transition:border-color .35s ease, transform .35s ease, background .35s ease;
+    text-decoration:none; color:inherit; display:block;
+  }
+  .repo-card:hover{ border-color:var(--ember-dim); transform:translateY(-3px); background:var(--bg-fog-2); }
+  .repo-card .repo-name{ font-family:var(--font-mono); font-size:0.98rem; color:var(--paper); margin-bottom:0.6rem; }
+  .repo-card .repo-desc{ font-size:0.88rem; color:var(--paper-dim); line-height:1.6; min-height:2.8em; }
+  .repo-meta{ display:flex; gap:1rem; margin-top:1rem; font-family:var(--font-mono); font-size:0.72rem; color:var(--mist); }
+  .repo-meta .lang-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:0.4rem; background:var(--ember); }
+  .code-cta{ margin-top:2.4rem; text-align:center; }
+  .code-cta a{ font-family:var(--font-mono); font-size:0.8rem; color:var(--ember); text-decoration:none; letter-spacing:0.05em; border-bottom:1px solid var(--ember-dim); padding-bottom:2px; }
+
+  /* ===================================================================
+     MUSIC WINDOW — list of tracks/videos linking out.
+     =================================================================== */
+  .track-list{ border-top:1px solid var(--line); }
+  .track{ display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:1.5rem 0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; }
+  .track-left{ display:flex; align-items:center; gap:1.4rem; }
+  .track-index{ font-family:var(--font-mono); font-size:0.78rem; color:var(--mist); width:2ch; }
+  .track-title{ font-family:var(--font-display); font-size:1.15rem; color:var(--paper); transition:color .3s ease; }
+  .track:hover .track-title{ color:var(--ember); }
+  .track-play{ width:34px; height:34px; border:1px solid var(--line); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color .3s ease, background .3s ease; }
+  .track:hover .track-play{ border-color:var(--ember); background:rgba(224,151,47,0.08); }
+  .track-play svg{ width:11px; height:11px; fill:var(--paper-dim); }
+  .track:hover .track-play svg{ fill:var(--ember); }
+
+  /* ===================================================================
+     IMAGING WINDOW — album tabs + grid of photos for the active album.
+     =================================================================== */
+  .album-tabs{ display:flex; gap:1.8rem; flex-wrap:wrap; margin-bottom:2.6rem; border-bottom:1px solid var(--line); padding-bottom:1.4rem; }
+  .album-tab{
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--mist); cursor:pointer; border-bottom:1px solid transparent; padding-bottom:4px;
+    transition:color .3s ease, border-color .3s ease; background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .album-tab:hover{ color:var(--paper); }
+  .album-tab.active{ color:var(--ember); border-color:var(--ember); }
+  .imaging-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:1.2rem; }
+  .frame{ position:relative; aspect-ratio:4/5; border:1px solid var(--line); overflow:hidden; background:var(--bg-fog-1); text-decoration:none; display:block; }
+  .frame img{ width:100%; height:100%; object-fit:cover; filter:grayscale(1) contrast(1.05) brightness(0.85); transition:filter .5s ease, transform .6s ease; }
+  .frame:hover img{ filter:grayscale(0.2) contrast(1.05) brightness(0.95); transform:scale(1.04); }
+  .frame-caption{ position:absolute; left:0; right:0; bottom:0; padding:0.9rem 1rem; background:linear-gradient(to top, rgba(0,0,0,0.75), transparent); font-family:var(--font-mono); font-size:0.72rem; color:var(--paper); letter-spacing:0.05em; }
+
+  /* ===================================================================
+     CONTACT WINDOW
+     =================================================================== */
+  #window-contact .window-inner{ text-align:center; }
+  #window-contact p{ color:var(--paper-dim); max-width:46ch; margin:0 auto 2.2rem; line-height:1.7; }
+  .contact-links{ display:flex; gap:2.4rem; justify-content:center; flex-wrap:wrap; font-family:var(--font-mono); font-size:0.85rem; }
+  .contact-links a{ color:var(--paper); text-decoration:none; border-bottom:1px solid var(--line); padding-bottom:3px; transition:border-color .3s ease, color .3s ease; }
+  .contact-links a:hover{ color:var(--ember); border-color:var(--ember); }
+  .fine-print{ margin-top:3.5rem; font-family:var(--font-mono); font-size:0.68rem; color:var(--mist); opacity:0.6; }
+
+  ::selection{ background:var(--ember-dim); color:var(--paper); }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+  @media (max-width:640px){
+    .window-inner{ padding:6.5rem 6vw 4rem; }
+    nav{ padding:1.1rem 5vw; }
+    .navlinks{ gap:1.1rem; font-size:0.68rem; }
+    .timeline::before{ left:46px; }
+    .t-item{ grid-template-columns:46px 1fr; gap:1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Ambient background layers: fog, drifting mist, grain, vignette. No content. -->
+  <div class="fog-layer"></div>
+  <div class="fog-drift"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+
+  <!-- ===================================================================
+       NAV — clicking a link switches the visible window (see showWindow()
+       in the script below). Hash in the URL always matches the open window.
+       =================================================================== -->
+  <nav>
+    <a class="logo" data-view="home" href="#home">M.T.P.</a>
+    <ul class="navlinks">
+      <li><a data-view="research" href="#research">Research</a></li>
+      <li><a data-view="code" href="#code">Code</a></li>
+      <li><a data-view="music" href="#music">Music</a></li>
+      <li><a data-view="imaging" href="#imaging">Imaging</a></li>
+      <li><a data-view="contact" href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <div class="stage">
+
+    <!-- =================================================================
+         HOME WINDOW — name, tagline, silhouette figure.
+         Populated by populateHero() from content-hero.js.
+         ================================================================= -->
+    <div class="window" id="window-home">
+      <div class="figure">
+        <svg viewBox="0 0 46 110" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="23" cy="10" rx="8" ry="9" fill="#050505"/>
+          <path d="M23 19 L23 60 M23 30 L8 50 M23 30 L38 50 M23 60 L10 105 M23 60 L36 105" stroke="#050505" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1 id="hero-name"></h1>
+      <p class="role" id="hero-tagline"></p>
+      <p class="enter-cue">Choose a room above</p>
+    </div>
+
+    <!-- =================================================================
+         ABOUT WINDOW — bio paragraphs (left) + quick facts (right).
+         Populated by populateAbout() from content-about.js.
+         ================================================================= -->
+    <div class="window" id="window-about">
+      <div class="window-inner">
+        <span class="eyebrow">About</span>
+        <div class="section-line"></div>
+        <div class="about-grid">
+          <div id="about-paragraphs"></div>
+          <div class="stat-block" id="about-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================
+         RESEARCH WINDOW — two timelines: First author / Co-author.
+         Populated by populateResearch() from content-research.js.
+         ================================================================= -->
+    <div class="window" id="window-research">
+      <div class="window-inner">
+        <span class="eyebrow">Research</span>
+        <h2>A history of the work</h2>
+        <h3 class="sub-heading">First author</h3>
+        <div class="timeline" id="research-first"></div>
+        <h3 class="sub-heading">Co-author</h3>
+        <div class="timeline" id="research-co"></div>
+      </div>
+    </div>
+
+    <!-- =================================================================
+         CODE WINDOW — GitHub repo cards + link to full profile.
+         Populated by populateCode() from content-code.js.
+         ================================================================= -->
+    <div class="window" id="window-code">
+      <div class="window-inner">
+        <span class="eyebrow">Code</span>
+        <h2>Things I've built in the open</h2>
+        <div class="code-grid" id="code-grid"></div>
+        <div class="code-cta"><a id="code-cta-link" href="#" target="_blank" rel="noopener">See everything on GitHub →</a></div>
+      </div>
+    </div>
+
+    <!-- =================================================================
+         MUSIC WINDOW — list of tracks/videos linking out.
+         Populated by populateMusic() from content-music.js.
+         ================================================================= -->
+    <div class="window" id="window-music">
+      <div class="window-inner">
+        <span class="eyebrow">Music</span>
+        <h2>What I make when the logic changes</h2>
+        <div class="track-list" id="music-tracks"></div>
+      </div>
+    </div>
+
+    <!-- =================================================================
+         IMAGING WINDOW — album tabs + grid for the active album.
+         Populated by populateImaging() from content-imaging.js
+         (which itself pulls each album from its own content-imaging-*.js file).
+         ================================================================= -->
+    <div class="window" id="window-imaging">
+      <div class="window-inner">
+        <span class="eyebrow">Imaging</span>
+        <h2>Frames, off the clock</h2>
+        <div class="album-tabs" id="album-tabs"></div>
+        <div class="imaging-grid" id="imaging-grid"></div>
+      </div>
+    </div>
+
+    <!-- =================================================================
+         CONTACT WINDOW — intro line + email/GitHub/YouTube links.
+         Populated by populateContact() from content-contact.js.
+         ================================================================= -->
+    <div class="window" id="window-contact">
+      <div class="window-inner">
+        <span class="eyebrow">Contact</span>
+        <h2>Get in touch</h2>
+        <p id="contact-intro"></p>
+        <div class="contact-links">
+          <a id="contact-email" href="#">Email</a>
+          <a id="contact-github" href="#" target="_blank" rel="noopener">GitHub</a>
+          <a id="contact-youtube" href="#" target="_blank" rel="noopener">YouTube</a>
+        </div>
+        <div class="fine-print" id="contact-copyright"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Content files — one per section/album. Edit these to change any text on the page. -->
+  <script src="content-hero.js"></script>
+  <script src="content-about.js"></script>
+  <script src="content-research.js"></script>
+  <script src="content-code.js"></script>
+  <script src="content-music.js"></script>
+  <script src="content-imaging-travel.js"></script>
+  <script src="content-imaging-astro.js"></script>
+  <script src="content-imaging.js"></script>
+  <script src="content-contact.js"></script>
+
+  <script>
+    /* =================================================================
+       POPULATE FUNCTIONS
+       Each fills one window's DOM from its content file. Nothing here
+       needs editing to change text — only edit the content-*.js files.
+       ================================================================= */
+
+    function populateHero(){
+      document.getElementById('hero-name').textContent = CONTENT_HERO.name;
+      document.getElementById('hero-tagline').textContent = CONTENT_HERO.tagline;
+      document.title = CONTENT_HERO.name;
+    }
+
+    function populateAbout(){
+      const paraWrap = document.getElementById('about-paragraphs');
+      CONTENT_ABOUT.paragraphs.forEach(text => {
+        const p = document.createElement('p');
+        p.textContent = text;
+        paraWrap.appendChild(p);
+      });
+      const statsWrap = document.getElementById('about-stats');
+      CONTENT_ABOUT.stats.forEach(stat => {
+        const div = document.createElement('div');
+        div.innerHTML = `<b>${stat.label}</b> — ${stat.value}`;
+        statsWrap.appendChild(div);
+      });
+    }
+
+    function renderTimeline(containerId, entries){
+      const wrap = document.getElementById(containerId);
+      entries.forEach(item => {
+        const linkHtml = item.link ? `<a class="t-link" href="${item.link}" target="_blank" rel="noopener">Read the paper →</a>` : '';
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="t-item">
+            <div class="t-year">${item.year}</div>
+            <div class="t-body">
+              <h3>${item.title}</h3>
+              <div class="t-venue">${item.venue}</div>
+              <p>${item.description}</p>
+              ${linkHtml}
+            </div>
+          </div>
+        `);
+      });
+    }
+
+    function populateResearch(){
+      renderTimeline('research-first', CONTENT_RESEARCH.firstAuthor);
+      renderTimeline('research-co', CONTENT_RESEARCH.coAuthor);
+    }
+
+    function populateCode(){
+      const wrap = document.getElementById('code-grid');
+      CONTENT_CODE.repos.forEach(repo => {
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="repo-card" href="${repo.url}" target="_blank" rel="noopener">
+            <div class="repo-name">${repo.name}</div>
+            <div class="repo-desc">${repo.desc}</div>
+            <div class="repo-meta"><span><span class="lang-dot"></span>${repo.lang}</span><span>★ ${repo.stars}</span></div>
+          </a>
+        `);
+      });
+      document.getElementById('code-cta-link').href = CONTENT_CODE.githubProfileUrl;
+    }
+
+    function populateMusic(){
+      const wrap = document.getElementById('music-tracks');
+      CONTENT_MUSIC.tracks.forEach((track, i) => {
+        const index = String(i + 1).padStart(2, '0');
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="track" href="${track.url}" target="_blank" rel="noopener">
+            <div class="track-left">
+              <span class="track-index">${index}</span>
+              <span class="track-title">${track.title}</span>
+            </div>
+            <span class="track-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </a>
+        `);
+      });
+    }
+
+    // ---- Imaging: album tabs + grid ------------------------------------
+    let activeAlbumIndex = 0;
+
+    function renderAlbumGrid(items){
+      const wrap = document.getElementById('imaging-grid');
+      wrap.innerHTML = '';
+      items.forEach(item => {
+        wrap.insertAdjacentHTML('beforeend', `
+          <a class="frame" href="${item.url}">
+            <img src="${item.img}" alt="${item.caption}">
+            <span class="frame-caption">${item.caption}</span>
+          </a>
+        `);
+      });
+    }
+
+    function selectAlbum(index){
+      activeAlbumIndex = index;
+      document.querySelectorAll('.album-tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+      });
+      renderAlbumGrid(CONTENT_IMAGING.albums[index].items);
+    }
+
+    function populateImaging(){
+      const tabsWrap = document.getElementById('album-tabs');
+      CONTENT_IMAGING.albums.forEach((album, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'album-tab' + (i === 0 ? ' active' : '');
+        btn.textContent = album.name;
+        btn.addEventListener('click', () => selectAlbum(i));
+        tabsWrap.appendChild(btn);
+      });
+      renderAlbumGrid(CONTENT_IMAGING.albums[0].items);
+    }
+
+    function populateContact(){
+      document.getElementById('contact-intro').textContent = CONTENT_CONTACT.intro;
+      document.getElementById('contact-email').href = `mailto:${CONTENT_CONTACT.email}`;
+      document.getElementById('contact-github').href = CONTENT_CONTACT.githubUrl;
+      document.getElementById('contact-youtube').href = CONTENT_CONTACT.youtubeUrl;
+      document.getElementById('contact-copyright').textContent = CONTENT_CONTACT.copyrightLine;
+    }
+
+    // Fill every window once on load
+    populateHero();
+    populateAbout();
+    populateResearch();
+    populateCode();
+    populateMusic();
+    populateImaging();
+    populateContact();
+
+    /* =================================================================
+       WINDOW SWITCHING
+       Only one .window is ever visible. Switching fades the old one
+       out, then fades the new one in. The URL hash always matches the
+       open window, so links, bookmarks, and back/forward all work.
+       ================================================================= */
+    const validViews = ['home','about','research','code','music','imaging','contact'];
+
+    function showWindow(view){
+      if (!validViews.includes(view)) view = 'home';
+      const current = document.querySelector('.window.active');
+      const next = document.getElementById('window-' + view);
+      if (current === next) return;
+
+      if (current){
+        current.classList.add('leaving');
+        current.classList.remove('active');
+        setTimeout(() => {
+          current.classList.remove('leaving');
+          current.style.display = 'none';
+        }, 500);
+      }
+
+      next.style.display = 'block';
+      // Force a reflow so the transition actually plays
+      void next.offsetWidth;
+      next.classList.add('active');
+
+      document.querySelectorAll('.navlinks a, .logo').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('data-view') === view);
+      });
+    }
+
+    function syncFromHash(){
+      const view = (location.hash || '#home').slice(1);
+      showWindow(view);
+    }
+
+    document.querySelectorAll('[data-view]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const view = link.getAttribute('data-view');
+        if (location.hash.slice(1) !== view) location.hash = view;
+        else showWindow(view);
+      });
+    });
+
+    window.addEventListener('hashchange', syncFromHash);
+    syncFromHash(); // open the correct window on first load
+  </script>
+
+</body>
+</html>
